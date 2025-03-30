@@ -386,8 +386,8 @@ export default function Home() {
 
   return (
     <div className="relative bg-black overflow-hidden">
-      {/* Fixed Menu Button */}
-      <div className="fixed top-6 left-6 z-50">
+      {/* Fixed Header with Menu Button and Logo */}
+      <div className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-black/70 to-transparent">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -396,6 +396,11 @@ export default function Home() {
         >
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </Button>
+        
+        {/* Logo on the right */}
+        <Link href="#hero" className="flex items-center">
+          <img src="/logo.jpg" alt="Moab 240 Logo" className="h-12" />
+        </Link>
       </div>
 
       {/* Mobile Menu Slide */}
