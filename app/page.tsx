@@ -33,6 +33,7 @@ const sections: Section[] = [
   {
     id: "about",
     title: "What is Moab 240?",
+    
     text: "An epic 240-mile ultramarathon journey through Utah's breathtaking landscapes",
     link: { href: "/about", text: "Explore the Route" },
     image: "/moab2.jpg",
@@ -85,14 +86,15 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   const textY = useTransform(scrollYProgress, [0, 1], [0, -50])
   const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.7])
   
-  // New transformation for scroll indicator opacity
-  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+  // Enhanced transformation for scroll indicator
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0])
 
   return (
     <motion.div 
       ref={ref}
       id={section.id}
       className={`relative h-screen w-full overflow-hidden ${section.bgColor}`}
+      style={{ scrollSnapAlign: "start" }}
     >
       {/* Parallax Background with Overlay - Just slightly reduced opacity for brighter background */}
       <motion.div 
@@ -135,18 +137,51 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
           </Link>
         )}
 
-        {/* Scroll Indicator with Fade Effect */}
-        {!isLast && (
+        {/* Bouncing Down Arrow with Pulsing Text positioned much higher */}
+        {!isLast && section.id === "hero" && (
           <motion.div 
-            style={{ 
-              opacity: scrollIndicatorOpacity,
-            }}
+            style={{ opacity: scrollIndicatorOpacity }}
+            className="absolute bottom-10 flex flex-col items-center"
+          >
+            <motion.p 
+              className="text-white/90 text-sm font-medium mb-12"
+              initial={{ opacity: 0.6 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
+            >
+              SCROLL TO EXPLORE
+            </motion.p>
+            
+            <motion.div className="animate-bounce">
+              <ChevronDown className="text-white/90" size={36} />
+            </motion.div>
+          </motion.div>
+        )}
+        
+        {/* Smaller scroll indicators for non-hero sections */}
+        {!isLast && section.id !== "hero" && (
+          <motion.div 
+            style={{ opacity: scrollIndicatorOpacity }}
             className="absolute bottom-8 animate-bounce"
           >
-            <ChevronDown className="text-white/70" size={32} />
+            <ChevronDown className="text-white/80" size={32} />
           </motion.div>
         )}
       </motion.div>
+      
+      {/* Visual indicator at page edges */}
+      {!isLast && (
+        <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-t from-black/30 to-transparent z-10" />
+      )}
+      
+      {/* Section Progress Indicator */}
+      {section.id !== "hero" && (
+        <div className="absolute top-6 right-6 z-30">
+          <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-white/70 text-xs">
+            {sections.findIndex(s => s.id === section.id)}/{sections.length - 1}
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -164,6 +199,30 @@ export default function Home() {
       // Ensure we're at the top of the page
       window.scrollTo(0, 0)
     }
+    
+    // Add scroll snap properties to html element
+    document.documentElement.style.scrollSnapType = "y mandatory";
+    
+    // Initial scroll prompt animation
+    const timeout = setTimeout(() => {
+      const scrollPrompt = document.createElement('div');
+      scrollPrompt.className = 'fixed bottom-1/4 right-1/2 translate-x-1/2 z-50 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white pointer-events-none';
+      scrollPrompt.innerText = 'Scroll down to explore';
+      document.body.appendChild(scrollPrompt);
+      
+      setTimeout(() => {
+        scrollPrompt.style.transition = 'opacity 1s ease';
+        scrollPrompt.style.opacity = '0';
+        setTimeout(() => {
+          document.body.removeChild(scrollPrompt);
+        }, 1000);
+      }, 3000);
+    }, 2000);
+    
+    return () => {
+      clearTimeout(timeout);
+      document.documentElement.style.scrollSnapType = "";
+    };
   }, [])
 
   return (
@@ -174,7 +233,7 @@ export default function Home() {
           variant="ghost" 
           size="icon" 
           onClick={() => setMenuOpen(!menuOpen)}
-                        className="text-white bg-black/40 transition-all duration-300 hover:bg-black/60 hover:scale-110"
+          className="text-white bg-black/40 transition-all duration-300 hover:bg-black/60 hover:scale-110"
         >
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </Button>
