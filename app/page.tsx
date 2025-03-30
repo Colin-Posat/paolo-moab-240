@@ -107,6 +107,17 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   
   // Enhanced transformation for scroll indicator
   const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0])
+  
+  // Add transition effect for entering sections
+  const [hasEntered, setHasEntered] = React.useState(false)
+  
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setHasEntered(true)
+    }, 100)
+    
+    return () => clearTimeout(timeout)
+  }, [])
 
   return (
     <motion.div 
@@ -114,7 +125,8 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
       id={section.id}
       className={`relative h-screen w-full overflow-hidden ${section.bgColor}`}
       style={{ 
-        scrollSnapAlign: "start",
+        scrollSnapAlign: "center", // Change to center for more precise snapping
+        scrollSnapStop: "always", // Force stopping at each section
         minHeight: isMobile ? '100vh' : 'auto'
       }}
     >
@@ -140,6 +152,12 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
 
       {/* Foreground Content */}
       <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ 
+          opacity: hasEntered ? 1 : 0,
+          y: hasEntered ? 0 : 20
+        }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
         style={{ 
           y: textY,
           opacity: textOpacity,
@@ -195,9 +213,14 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
         )}
       </motion.div>
       
-      {/* Visual indicator at page edges */}
+      {/* Visual indicator at page edges - enhanced to make sections feel more separate */}
       {!isLast && (
-        <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-t from-black/30 to-transparent z-10" />
+        <div className="absolute left-0 right-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent z-10" />
+      )}
+      
+      {/* Visual indicator at top edges to reinforce section separation */}
+      {section.id !== "hero" && (
+        <div className="absolute left-0 right-0 top-0 h-8 bg-gradient-to-b from-black to-transparent z-10" />
       )}
       
       {/* Section Progress Indicator has been removed */}
@@ -208,7 +231,7 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
 export default function Home() {
   const [menuOpen, setMenuOpen] = React.useState(false)
   
-  // Prevent initial scroll to hash on page load and add overscroll behavior
+  // Prevent initial scroll to hash on page load and enhance scroll behavior
   useEffect(() => {
     // Check if there's a hash in the URL
     if (window.location.hash) {
@@ -219,31 +242,51 @@ export default function Home() {
       window.scrollTo(0, 0)
     }
     
-    // Add scroll snap properties to html element
+    // Add scroll snap properties to html element - stronger snap with proximity
     document.documentElement.style.scrollSnapType = "y mandatory";
+    document.documentElement.style.scrollBehavior = "smooth";
     
-    // Prevent scrolling past the top
-    const handleScroll = () => {
+    // Add a small delay between scroll events to make sections feel more separate
+    let isScrolling = false;
+    const handleScroll = (e: WheelEvent) => {
+      // Prevent scrolling past the top
       if (window.scrollY < 0) {
         window.scrollTo(0, 0);
+        return;
+      }
+      
+      // Create separation between scroll events
+      if (!isScrolling) {
+        isScrolling = true;
+        
+        // Add a small throttle to make each section feel more distinct
+        setTimeout(() => {
+          isScrolling = false;
+        }, 800); // Adjust timing for desired separation feel
       }
     };
     
     // Add CSS to prevent overscroll behavior
     document.body.style.overscrollBehavior = "none";
     
-    // Add event listener for older browsers
-    window.addEventListener('scroll', handleScroll);
+    // Add event listener for wheel events to control scrolling
+    window.addEventListener('wheel', handleScroll, { passive: false });
     
     return () => {
       document.documentElement.style.scrollSnapType = "";
+      document.documentElement.style.scrollBehavior = "auto";
       document.body.style.overscrollBehavior = "";
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleScroll);
     };
   }, [])
 
   return (
-    <div className="relative bg-black" style={{ overflowX: 'hidden' }}>
+    <div className="relative bg-black" style={{ 
+      overflowX: 'hidden',
+      scrollSnapType: 'y mandatory', // Enforce at container level as well
+      height: '100vh',
+      overflowY: 'auto'
+    }}>
       {/* Fixed Menu Button */}
       <div className="fixed top-6 left-6 z-50">
         <Button 
