@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef, useEffect, useState } from "react"
+import React, { useRef, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -76,22 +76,40 @@ type ParallaxSectionProps = {
 
 function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   const ref = useRef<HTMLDivElement>(null)
+  
+  // Create two scroll progress trackers for enhanced transitions
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"]
   })
-
-  // Prevent negative parallax effect at top to avoid black appearing
-  // Reduced the parallax speed for smoother scrolling
-  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 80])
-  // Reduced the scale amount for smoother effect
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.03])
-  // Reduced the text movement for smoother effect
-  const textY = useTransform(scrollYProgress, [0, 1], [0, -20])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.9])
   
-  // Slowed down the fade of scroll indicator
-  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0])
+  // This tracks when the section enters the viewport from below
+  const { scrollYProgress: entryProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "start start"]
+  })
+  
+  // Enhanced parallax and transition effects
+  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 80])
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.05])
+  
+  // Text movement with improved entry transition
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -30])
+  
+  // Content transitions based on scroll position
+  const opacity = useTransform(entryProgress, [0, 0.4, 1], [0, 1, 1])
+  const contentY = useTransform(entryProgress, [0, 0.6], [60, 0])
+  
+  // Text content reveal staggering
+  const titleOpacity = useTransform(entryProgress, [0.1, 0.4], [0, 1])
+  const descOpacity = useTransform(entryProgress, [0.2, 0.5], [0, 1])
+  const buttonOpacity = useTransform(entryProgress, [0.3, 0.6], [0, 1])
+  
+  // Fade out effect when scrolling away
+  const exitOpacity = useTransform(scrollYProgress, [0.7, 1], [1, 0.7])
+  
+  // Scroll indicator fade
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
 
   return (
     <motion.div 
@@ -113,30 +131,48 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
         <div className={`absolute inset-0 ${section.id === "support" ? "bg-black/35" : "bg-black/45"}`} />
       </motion.div>
 
-      {/* Foreground Content */}
+      {/* Enhanced Foreground Content with staggered reveal */}
       <motion.div 
         style={{ 
           y: textY,
-          opacity: textOpacity,
+          opacity: exitOpacity, // Fade out when scrolling away
         }}
         className="relative z-20 flex flex-col justify-center items-center h-full text-center text-white px-6"
       >
-        <h2 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight drop-shadow-lg opacity-80">
-          {section.title}
-        </h2>
-        <p className="max-w-2xl text-lg md:text-xl mb-8 font-light opacity-90">
-          {section.text}
-        </p>
-        {section.id !== "hero" && (
-          <Link href={section.link.href}>
-            <Button 
-              variant="outline" 
-              className="border-white/70 text-white bg-white/20 transition-all duration-300 hover:scale-110 hover:bg-white/30 hover:text-white"
-            >
-              {section.link.text}
-            </Button>
-          </Link>
-        )}
+        <motion.div
+          style={{
+            y: contentY,
+            opacity: opacity,
+          }}
+          className="flex flex-col items-center"
+        >
+          <motion.h2 
+            style={{ opacity: titleOpacity }}
+            className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight drop-shadow-lg"
+          >
+            {section.title}
+          </motion.h2>
+          
+          <motion.p 
+            style={{ opacity: descOpacity }}
+            className="max-w-2xl text-lg md:text-xl mb-8 font-light"
+          >
+            {section.text}
+          </motion.p>
+          
+          {section.id !== "hero" && (
+            <motion.div style={{ opacity: buttonOpacity }}>
+              <Link href={section.link.href}>
+                <Button 
+                  variant="outline" 
+                  className="border-white/70 text-white bg-white/20 transition-all duration-300 hover:scale-110 hover:bg-white/30 hover:text-white"
+                >
+                  {section.link.text}
+                </Button>
+              </Link>
+            </motion.div>
+          )}
+        </motion.div>
 
         {/* Bouncing Down Arrow with Pulsing Text positioned much higher */}
         {!isLast && section.id === "hero" && (
@@ -170,19 +206,23 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
         )}
       </motion.div>
       
-      {/* Visual indicator at page edges */}
+      {/* Enhanced section transition indicators */}
       {!isLast && (
-        <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-t from-black/30 to-transparent z-10" />
+        <>
+          {/* Bottom fade gradient */}
+          <div className="absolute left-0 right-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent z-10" />
+          
+          {/* Subtle section separator */}
+          <motion.div 
+            className="absolute left-0 right-0 bottom-0 z-20 overflow-hidden"
+            style={{ opacity: useTransform(scrollYProgress, [0.7, 1], [0, 0.6]) }}
+          >
+            <div className="w-full h-px bg-white/20 backdrop-blur-sm" />
+          </motion.div>
+        </>
       )}
       
-      {/* Section Progress Indicator */}
-      {section.id !== "hero" && (
-        <div className="absolute top-6 right-6 z-30">
-          <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-white/70 text-xs">
-            {sections.findIndex(s => s.id === section.id)}/{sections.length - 1}
-          </div>
-        </div>
-      )}
+
     </motion.div>
   )
 }
@@ -211,7 +251,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="relative bg-black">
+    <div className="relative bg-black overflow-hidden">
       {/* Fixed Menu Button */}
       <div className="fixed top-6 left-6 z-50">
         <Button 
