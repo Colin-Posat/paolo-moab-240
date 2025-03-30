@@ -84,6 +84,24 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   // Prevent negative parallax effect at top to avoid black appearing
   const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 150])
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
+  
+  // Determine if we're on a mobile device
+  const [isMobile, setIsMobile] = React.useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    // Check on mount
+    checkMobile()
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile)
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   const textY = useTransform(scrollYProgress, [0, 1], [0, -50])
   const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.7])
   
@@ -95,7 +113,10 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
       ref={ref}
       id={section.id}
       className={`relative h-screen w-full overflow-hidden ${section.bgColor}`}
-      style={{ scrollSnapAlign: "start" }}
+      style={{ 
+        scrollSnapAlign: "start",
+        minHeight: isMobile ? '100vh' : 'auto'
+      }}
     >
       {/* Parallax Background with Overlay - Just slightly reduced opacity for brighter background */}
       <motion.div 
@@ -103,14 +124,18 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
           backgroundImage: `url(${section.image})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
-          y: backgroundY,
-          scale: scale,
+          y: isMobile ? 0 : backgroundY,
+          scale: isMobile ? 1 : scale,
         }}
-        className="absolute inset-0 z-0 origin-center"
+        className="absolute inset-0 z-0 origin-center md:h-full"
       >
         {/* Reduced overlay opacity from bg-black/50 to bg-black/45 for slightly brighter images */}
         {/* Additional brightness for the last "Support" section */}
-        <div className={`absolute inset-0 ${section.id === "support" ? "bg-black/35" : "bg-black/45"}`} />
+        <div className={`absolute inset-0 ${
+          section.id === "support" 
+            ? "bg-black/35" 
+            : "bg-black/45"
+        }`} />
       </motion.div>
 
       {/* Foreground Content */}
@@ -175,14 +200,7 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
         <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-t from-black/30 to-transparent z-10" />
       )}
       
-      {/* Section Progress Indicator */}
-      {section.id !== "hero" && (
-        <div className="absolute top-6 right-6 z-30">
-          <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-white/70 text-xs">
-            {sections.findIndex(s => s.id === section.id)}/{sections.length - 1}
-          </div>
-        </div>
-      )}
+      {/* Section Progress Indicator has been removed */}
     </motion.div>
   )
 }
@@ -225,7 +243,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="relative bg-black">
+    <div className="relative bg-black" style={{ overflowX: 'hidden' }}>
       {/* Fixed Menu Button */}
       <div className="fixed top-6 left-6 z-50">
         <Button 
