@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef, useEffect } from "react"
+import React, { useRef, useEffect, useState } from "react"
 import Link from "next/link"
 import { Menu, X, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -82,82 +82,39 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   })
 
   // Prevent negative parallax effect at top to avoid black appearing
-  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 150])
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
+  // Reduced the parallax speed for smoother scrolling
+  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 80])
+  // Reduced the scale amount for smoother effect
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.03])
+  // Reduced the text movement for smoother effect
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -20])
+  const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.9])
   
-  // Determine if we're on a mobile device
-  const [isMobile, setIsMobile] = React.useState(false)
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-    }
-    
-    // Check on mount
-    checkMobile()
-    
-    // Add resize listener
-    window.addEventListener('resize', checkMobile)
-    
-    // Clean up
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-  const textY = useTransform(scrollYProgress, [0, 1], [0, -50])
-  const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.7])
-  
-  // Enhanced transformation for scroll indicator
-  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0])
-  
-  // Add transition effect for entering sections
-  const [hasEntered, setHasEntered] = React.useState(false)
-  
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setHasEntered(true)
-    }, 100)
-    
-    return () => clearTimeout(timeout)
-  }, [])
+  // Slowed down the fade of scroll indicator
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0])
 
   return (
     <motion.div 
       ref={ref}
       id={section.id}
       className={`relative h-screen w-full overflow-hidden ${section.bgColor}`}
-      style={{ 
-        scrollSnapAlign: "center", // Change to center for more precise snapping
-        scrollSnapStop: "always", // Force stopping at each section
-        minHeight: isMobile ? '100vh' : 'auto'
-      }}
     >
-      {/* Parallax Background with Overlay - Just slightly reduced opacity for brighter background */}
+      {/* Parallax Background with Overlay */}
       <motion.div 
         style={{ 
           backgroundImage: `url(${section.image})`,
           backgroundPosition: 'center',
           backgroundSize: 'cover',
-          y: isMobile ? 0 : backgroundY,
-          scale: isMobile ? 1 : scale,
+          y: backgroundY,
+          scale: scale,
         }}
-        className="absolute inset-0 z-0 origin-center md:h-full"
+        className="absolute inset-0 z-0 origin-center"
       >
-        {/* Reduced overlay opacity from bg-black/50 to bg-black/45 for slightly brighter images */}
-        {/* Additional brightness for the last "Support" section */}
-        <div className={`absolute inset-0 ${
-          section.id === "support" 
-            ? "bg-black/35" 
-            : "bg-black/45"
-        }`} />
+        <div className={`absolute inset-0 ${section.id === "support" ? "bg-black/35" : "bg-black/45"}`} />
       </motion.div>
 
       {/* Foreground Content */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ 
-          opacity: hasEntered ? 1 : 0,
-          y: hasEntered ? 0 : 20
-        }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
         style={{ 
           y: textY,
           opacity: textOpacity,
@@ -213,17 +170,19 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
         )}
       </motion.div>
       
-      {/* Visual indicator at page edges - enhanced to make sections feel more separate */}
+      {/* Visual indicator at page edges */}
       {!isLast && (
-        <div className="absolute left-0 right-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent z-10" />
+        <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-t from-black/30 to-transparent z-10" />
       )}
       
-      {/* Visual indicator at top edges to reinforce section separation */}
+      {/* Section Progress Indicator */}
       {section.id !== "hero" && (
-        <div className="absolute left-0 right-0 top-0 h-8 bg-gradient-to-b from-black to-transparent z-10" />
+        <div className="absolute top-6 right-6 z-30">
+          <div className="bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full text-white/70 text-xs">
+            {sections.findIndex(s => s.id === section.id)}/{sections.length - 1}
+          </div>
+        </div>
       )}
-      
-      {/* Section Progress Indicator has been removed */}
     </motion.div>
   )
 }
@@ -231,7 +190,15 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
 export default function Home() {
   const [menuOpen, setMenuOpen] = React.useState(false)
   
-  // Prevent initial scroll to hash on page load and enhance scroll behavior
+  // Simple effect to remove hash from URL on load
+  useEffect(() => {
+    if (window.location.hash) {
+      history.replaceState(null, document.title, window.location.pathname)
+      window.scrollTo(0, 0)
+    }
+  }, [])
+
+  // Handle initial page load
   useEffect(() => {
     // Check if there's a hash in the URL
     if (window.location.hash) {
@@ -241,52 +208,10 @@ export default function Home() {
       // Ensure we're at the top of the page
       window.scrollTo(0, 0)
     }
-    
-    // Add scroll snap properties to html element - stronger snap with proximity
-    document.documentElement.style.scrollSnapType = "y mandatory";
-    document.documentElement.style.scrollBehavior = "smooth";
-    
-    // Add a small delay between scroll events to make sections feel more separate
-    let isScrolling = false;
-    const handleScroll = (e: WheelEvent) => {
-      // Prevent scrolling past the top
-      if (window.scrollY < 0) {
-        window.scrollTo(0, 0);
-        return;
-      }
-      
-      // Create separation between scroll events
-      if (!isScrolling) {
-        isScrolling = true;
-        
-        // Add a small throttle to make each section feel more distinct
-        setTimeout(() => {
-          isScrolling = false;
-        }, 800); // Adjust timing for desired separation feel
-      }
-    };
-    
-    // Add CSS to prevent overscroll behavior
-    document.body.style.overscrollBehavior = "none";
-    
-    // Add event listener for wheel events to control scrolling
-    window.addEventListener('wheel', handleScroll, { passive: false });
-    
-    return () => {
-      document.documentElement.style.scrollSnapType = "";
-      document.documentElement.style.scrollBehavior = "auto";
-      document.body.style.overscrollBehavior = "";
-      window.removeEventListener('wheel', handleScroll);
-    };
   }, [])
 
   return (
-    <div className="relative bg-black" style={{ 
-      overflowX: 'hidden',
-      scrollSnapType: 'y mandatory', // Enforce at container level as well
-      height: '100vh',
-      overflowY: 'auto'
-    }}>
+    <div className="relative bg-black">
       {/* Fixed Menu Button */}
       <div className="fixed top-6 left-6 z-50">
         <Button 
