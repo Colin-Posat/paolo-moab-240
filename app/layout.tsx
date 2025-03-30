@@ -1,29 +1,27 @@
-import type React from "react"
-import "./globals.css"
-import { Inter } from "next/font/google"
+import type React from "react";
+import "./globals.css";
+import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Paolo's Moab 240 Challenge",
   description: "Join us on an epic 240-mile ultramarathon journey through the breathtaking landscapes of Utah.",
-    generator: 'v0.dev'
-}
+  generator: "v0.dev",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" className="bg-black">
       <body className={`${inter.className} bg-black text-white`}>
         {children}
+        <Analytics /> {/* Added this line */}
       </body>
     </html>
-  )
+  );
 }
-
-
-
-import './globals.css'
