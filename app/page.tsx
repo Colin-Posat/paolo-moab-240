@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef, useEffect } from "react"
+import React, { useRef, useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { Menu, X, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -72,9 +72,10 @@ const sections: Section[] = [
 type ParallaxSectionProps = {
   section: Section;
   isLast: boolean;
+  onInView: (id: string, ratio: number) => void;
 }
 
-function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
+function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
   const ref = useRef<HTMLDivElement>(null)
   
   // Create two scroll progress trackers for enhanced transitions
@@ -88,7 +89,7 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
     target: ref,
     offset: ["start end", "start start"]
   })
-  
+
   // Enhanced parallax and transition effects
   const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 80])
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.05])
@@ -110,6 +111,42 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
   
   // Scroll indicator fade
   const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
+
+  // Track section visibility to help with gentle scroll snapping
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Calculate what percentage of the section is visible
+          const rect = entry.boundingClientRect;
+          const windowHeight = window.innerHeight;
+          
+          // How much of the section is visible in viewport
+          const visibleHeight = Math.min(rect.bottom, windowHeight) - Math.max(rect.top, 0);
+          const visibilityRatio = visibleHeight / windowHeight;
+          
+          // Only consider sections with significant visibility (avoid tiny intersections)
+          if (visibilityRatio > 0.15) {
+            onInView(section.id, visibilityRatio);
+          }
+        });
+      },
+      {
+        threshold: [0, 0.15, 0.3, 0.5, 0.7, 0.85, 1], // Track visibility at these thresholds
+        rootMargin: "-10% 0px -10% 0px" // Slightly shrink observation area to focus on center
+      }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [section.id, onInView]);
 
   return (
     <motion.div 
@@ -221,31 +258,128 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
           </motion.div>
         </>
       )}
-      
-
     </motion.div>
   )
 }
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [visibleSections, setVisibleSections] = useState<{id: string, ratio: number}[]>([])
+  const [isScrolling, setIsScrolling] = useState(false)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastScrollTime = useRef<number>(0)
+  const scrollInstanceId = useRef<number>(0)
   
-  // Simple effect to remove hash from URL on load
-  useEffect(() => {
-    if (window.location.hash) {
-      history.replaceState(null, document.title, window.location.pathname)
-      window.scrollTo(0, 0)
-    }
+  // Track section visibility
+  const handleSectionInView = useCallback((id: string, ratio: number) => {
+    setVisibleSections(prev => {
+      // Update or add the section
+      const existingIndex = prev.findIndex(s => s.id === id)
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = { id, ratio }
+        return updated
+      } else {
+        return [...prev, { id, ratio }]
+      }
+    })
   }, [])
-
-  // Handle initial page load
+  
+  // Very gentle scroll centering that activates only when user stops scrolling
   useEffect(() => {
-    // Check if there's a hash in the URL
-    if (window.location.hash) {
-      // Remove the hash without page reload
-      history.replaceState(null, document.title, window.location.pathname)
+    // Don't do anything if we're already in a programmatic scroll
+    if (isScrolling) return
+    
+    const handleUserScrollEnd = () => {
+      // Avoid processing if another scroll instance already started
+      const currentInstance = ++scrollInstanceId.current
       
-      // Ensure we're at the top of the page
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      
+      // Wait for a longer period of inactivity before considering scroll finished
+      // This makes the centering less intrusive
+      scrollTimeoutRef.current = setTimeout(() => {
+        // Skip if another scroll instance has started
+        if (currentInstance !== scrollInstanceId.current) return
+
+        // Only proceed if we're not already in a programmatic scroll
+        if (!isScrolling && visibleSections.length > 0) {
+          // Find most visible section
+          const mostVisible = [...visibleSections].sort((a, b) => b.ratio - a.ratio)[0]
+          
+          // Only proceed if the section is significantly visible but not perfectly centered
+          if (mostVisible && mostVisible.ratio > 0.5 && mostVisible.ratio < 0.95) {
+            const targetElement = document.getElementById(mostVisible.id)
+            if (targetElement) {
+              // Prevent multiple scroll actions
+              setIsScrolling(true)
+              
+              // Super gentle scrolling with very slow duration
+              window.scrollTo({
+                top: targetElement.offsetTop,
+                behavior: 'smooth'
+              })
+              
+              // Use a very long timeout to ensure we don't interrupt any natural scrolling
+              // The CSS transition will be much faster, but this prevents new centering attempts
+              setTimeout(() => {
+                if (currentInstance === scrollInstanceId.current) {
+                  setIsScrolling(false)
+                }
+              }, 1500) // Long timeout to avoid interrupting natural scrolling
+            }
+          } else {
+            // If section is already well-centered or barely visible, don't take action
+            setIsScrolling(false)
+          }
+        }
+      }, 1000) // Wait for a full second of no scrolling before initiating centering
+    }
+    
+    // Track scroll events to detect when user stops scrolling
+    const handleScroll = () => {
+      // Throttle scroll events
+      const now = Date.now()
+      if (now - lastScrollTime.current > 50) { // Only process every 50ms
+        lastScrollTime.current = now
+        handleUserScrollEnd()
+      }
+    }
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [isScrolling, visibleSections])
+  
+  // Handle menu link clicks without using hard scrolling
+  const handleMenuClick = (sectionId: string) => {
+    setMenuOpen(false)
+    const targetElement = document.getElementById(sectionId)
+    if (targetElement) {
+      setIsScrolling(true)
+      // Use very smooth scrolling for menu navigation
+      window.scrollTo({
+        top: targetElement.offsetTop,
+        behavior: 'smooth'
+      })
+      // Give plenty of time for the smooth scroll to complete
+      setTimeout(() => {
+        setIsScrolling(false)
+      }, 1200)
+    }
+  }
+  
+  // Clean up hash on initial load
+  useEffect(() => {
+    if (window.location.hash) {
+      history.replaceState(null, document.title, window.location.pathname)
       window.scrollTo(0, 0)
     }
   }, [])
@@ -292,8 +426,11 @@ export default function Home() {
                   <Link 
                     key={section.id} 
                     href={`#${section.id}`}
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent default hash navigation
+                      handleMenuClick(section.id);
+                    }}
                     className="block text-xl text-white/80 hover:text-white hover:translate-x-2 transition-all"
-                    onClick={() => setMenuOpen(false)}
                   >
                     {section.title}
                   </Link>
@@ -309,7 +446,8 @@ export default function Home() {
         <ParallaxSection 
           key={section.id} 
           section={section} 
-          isLast={index === sections.length - 1} 
+          isLast={index === sections.length - 1}
+          onInView={handleSectionInView}
         />
       ))}
 
