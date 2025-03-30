@@ -81,7 +81,8 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
     offset: ["start start", "end start"]
   })
 
-  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, -150])
+  // Prevent negative parallax effect at top to avoid black appearing
+  const backgroundY = useTransform(scrollYProgress, [0, 1], [0, 150])
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
   const textY = useTransform(scrollYProgress, [0, 1], [0, -50])
   const textOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 1, 0.7])
@@ -189,7 +190,7 @@ function ParallaxSection({ section, isLast }: ParallaxSectionProps) {
 export default function Home() {
   const [menuOpen, setMenuOpen] = React.useState(false)
   
-  // Prevent initial scroll to hash on page load
+  // Prevent initial scroll to hash on page load and add overscroll behavior
   useEffect(() => {
     // Check if there's a hash in the URL
     if (window.location.hash) {
@@ -203,25 +204,23 @@ export default function Home() {
     // Add scroll snap properties to html element
     document.documentElement.style.scrollSnapType = "y mandatory";
     
-    // Initial scroll prompt animation
-    const timeout = setTimeout(() => {
-      const scrollPrompt = document.createElement('div');
-      scrollPrompt.className = 'fixed bottom-1/4 right-1/2 translate-x-1/2 z-50 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white pointer-events-none';
-      scrollPrompt.innerText = 'Scroll down to explore';
-      document.body.appendChild(scrollPrompt);
-      
-      setTimeout(() => {
-        scrollPrompt.style.transition = 'opacity 1s ease';
-        scrollPrompt.style.opacity = '0';
-        setTimeout(() => {
-          document.body.removeChild(scrollPrompt);
-        }, 1000);
-      }, 3000);
-    }, 2000);
+    // Prevent scrolling past the top
+    const handleScroll = () => {
+      if (window.scrollY < 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+    
+    // Add CSS to prevent overscroll behavior
+    document.body.style.overscrollBehavior = "none";
+    
+    // Add event listener for older browsers
+    window.addEventListener('scroll', handleScroll);
     
     return () => {
-      clearTimeout(timeout);
       document.documentElement.style.scrollSnapType = "";
+      document.body.style.overscrollBehavior = "";
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [])
 
