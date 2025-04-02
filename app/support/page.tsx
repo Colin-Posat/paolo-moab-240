@@ -1,26 +1,11 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { motion, AnimatePresence } from "framer-motion"
-import { X } from "lucide-react"
+import { motion } from "framer-motion"
 
 export default function SupportPage() {
-  // State to control the popup visibility
-  const [showPopup, setShowPopup] = useState(false)
-
-  // Function to handle the GoFundMe button click
-  const handleGoFundMeClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault()
-    setShowPopup(true)
-    
-    // Automatically hide the popup after 5 seconds
-    setTimeout(() => {
-      setShowPopup(false)
-    }, 5000)
-  }
-
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section with Background Image */}
@@ -99,12 +84,17 @@ export default function SupportPage() {
               Help us cover race costs, gear, travel, and logistics by contributing through GoFundMe. Every donation, no matter the size, brings us one step closer to our goal.
             </p>
             <div className="flex justify-center">
-              <Button 
-                onClick={handleGoFundMeClick}
-                className="bg-white text-black transition-all duration-300 hover:bg-white/90 hover:text-black hover:scale-105 hover:shadow-glow px-8 py-6 text-lg"
+              <a 
+                href="https://www.gofundme.com/f/support-paolo-conta-and-friends-on-their-moab-240-journey?qid=19aa53d249579cf00cac5810680c4d2e"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Donate on GoFundMe
-              </Button>
+                <Button 
+                  className="bg-white text-black transition-all duration-300 hover:bg-white/90 hover:text-black hover:scale-105 hover:shadow-glow px-8 py-6 text-lg"
+                >
+                  Donate on GoFundMe
+                </Button>
+              </a>
             </div>
           </div>
         </motion.section>
@@ -121,7 +111,7 @@ export default function SupportPage() {
               If you're interested in partnering with us or supporting the project in a bigger way, we'd love to connect. Every bit of support makes a difference.
             </p>
             <div className="flex justify-center">
-            <Button 
+              <Button 
                 variant="outline" 
                 className="bg-white text-black transition-all duration-300 hover:bg-white/90 hover:text-black hover:scale-105 hover:shadow-glow px-8 py-6 text-lg"
               >
@@ -175,7 +165,7 @@ export default function SupportPage() {
                 </svg>
                 <span className="font-medium">@contaplates</span>
               </Link>
-              </div>
+            </div>
             <p className="text-white/80 text-lg leading-relaxed text-center mt-4">
               We are thinking of alternative ways to keep in contact :)
             </p>
@@ -193,29 +183,6 @@ export default function SupportPage() {
           </Link>
         </div>
       </div>
-
-      {/* GoFundMe Popup */}
-      <AnimatePresence>
-        {showPopup && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-white text-black rounded-lg shadow-lg px-6 py-4 flex items-center max-w-sm"
-          >
-            <div className="mr-4 text-lg font-medium">
-              We're currently setting up our GoFundMe. Check back soon!
-            </div>
-            <button 
-              onClick={() => setShowPopup(false)}
-              className="text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Add a shadow-glow class to the global styles */}
       <style jsx global>{`

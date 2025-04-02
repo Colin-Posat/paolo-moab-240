@@ -152,7 +152,8 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
     <motion.div 
       ref={ref}
       id={section.id}
-      className={`relative h-screen w-full overflow-hidden ${section.bgColor}`}
+      className={`h-screen w-full overflow-hidden ${section.bgColor}`}
+      style={{ position: 'relative' }} // Explicitly set position to relative
     >
       {/* Parallax Background with Overlay */}
       <motion.div 
@@ -162,10 +163,18 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
           backgroundSize: 'cover',
           y: backgroundY,
           scale: scale,
+          position: 'absolute', // Explicitly set position
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
         }}
-        className="absolute inset-0 z-0 origin-center"
+        className="z-0 origin-center"
       >
-        <div className={`absolute inset-0 ${section.id === "support" ? "bg-black/35" : "bg-black/45"}`} />
+        <div 
+          className={`absolute inset-0 ${section.id === "support" ? "bg-black/35" : "bg-black/45"}`}
+          style={{ position: 'absolute' }} // Explicitly set position
+        />
       </motion.div>
 
       {/* Enhanced Foreground Content with staggered reveal */}
@@ -173,13 +182,16 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
         style={{ 
           y: textY,
           opacity: exitOpacity, // Fade out when scrolling away
+          position: 'relative', // Explicitly set position
+          zIndex: 20,
         }}
-        className="relative z-20 flex flex-col justify-center items-center h-full text-center text-white px-6"
+        className="flex flex-col justify-center items-center h-full text-center text-white px-6"
       >
         <motion.div
           style={{
             y: contentY,
             opacity: opacity,
+            position: 'relative', // Explicitly set position
           }}
           className="flex flex-col items-center"
         >
@@ -198,7 +210,7 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
           </motion.p>
           
           {section.id !== "hero" && (
-            <motion.div style={{ opacity: buttonOpacity }}>
+            <motion.div style={{ opacity: buttonOpacity, position: 'relative' }}>
               <Link href={section.link.href}>
                 <Button 
                   variant="outline" 
@@ -214,8 +226,12 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
         {/* Bouncing Down Arrow with Pulsing Text positioned much higher */}
         {!isLast && section.id === "hero" && (
           <motion.div 
-            style={{ opacity: scrollIndicatorOpacity }}
-            className="absolute bottom-10 flex flex-col items-center"
+            style={{ 
+              opacity: scrollIndicatorOpacity,
+              position: 'absolute', // Explicitly set position
+              bottom: '10px'
+            }}
+            className="flex flex-col items-center"
           >
             <motion.p 
               className="text-white/90 text-sm font-medium mb-12"
@@ -235,8 +251,12 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
         {/* Smaller scroll indicators for non-hero sections */}
         {!isLast && section.id !== "hero" && (
           <motion.div 
-            style={{ opacity: scrollIndicatorOpacity }}
-            className="absolute bottom-8 animate-bounce"
+            style={{ 
+              opacity: scrollIndicatorOpacity,
+              position: 'absolute', // Explicitly set position
+              bottom: '8px'
+            }}
+            className="animate-bounce"
           >
             <ChevronDown className="text-white/80" size={32} />
           </motion.div>
@@ -247,12 +267,18 @@ function ParallaxSection({ section, isLast, onInView }: ParallaxSectionProps) {
       {!isLast && (
         <>
           {/* Bottom fade gradient */}
-          <div className="absolute left-0 right-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent z-10" />
+          <div 
+            className="absolute left-0 right-0 bottom-0 h-12 bg-gradient-to-t from-black to-transparent z-10"
+            style={{ position: 'absolute' }} // Explicitly set position
+          />
           
           {/* Subtle section separator */}
           <motion.div 
             className="absolute left-0 right-0 bottom-0 z-20 overflow-hidden"
-            style={{ opacity: useTransform(scrollYProgress, [0.7, 1], [0, 0.6]) }}
+            style={{ 
+              opacity: useTransform(scrollYProgress, [0.7, 1], [0, 0.6]),
+              position: 'absolute' // Explicitly set position
+            }}
           >
             <div className="w-full h-px bg-white/20 backdrop-blur-sm" />
           </motion.div>
@@ -387,7 +413,7 @@ export default function Home() {
   return (
     <div className="relative bg-black overflow-hidden">
       {/* Fixed Header with Menu Button and Logo */}
-      <div className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-black/70 to-transparent">
+      <div className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-black/70 to-transparent" style={{ position: 'fixed' }}>
         <Button 
           variant="ghost" 
           size="icon" 
@@ -412,6 +438,7 @@ export default function Home() {
             exit={{ x: "-100%" }}
             transition={{ type: "tween" }}
             className="fixed inset-y-0 left-0 w-72 bg-black/90 backdrop-blur-lg z-50 shadow-2xl"
+            style={{ position: 'fixed' }}
           >
             <div className="p-8">
               <div className="flex justify-between items-center mb-10">
@@ -457,7 +484,7 @@ export default function Home() {
       ))}
 
       {/* Footer */}
-      <footer className="bg-black text-white py-12 text-center">
+      <footer className="bg-black text-white py-12 text-center" style={{ position: 'relative' }}>
         <div className="container mx-auto">
           <div className="flex justify-center space-x-6 mb-6">
             {[""].map((platform) => (
