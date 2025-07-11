@@ -66,6 +66,15 @@ const sections: Section[] = [
     image: "/team/friends-walking.jpg",
     bgColor: "black",
     showInMenu: true,
+  },
+  {
+    id: "messages",
+    title: "Messages of Support",
+    text: "Share your encouragement and read inspiring messages from our community",
+    link: { href: "/messages", text: "View Messages" },
+    image: "/team/friends-walking.jpg",
+    bgColor: "black",
+    showInMenu: true,
   }
 ]
 
