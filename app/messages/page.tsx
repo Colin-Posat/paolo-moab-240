@@ -4,13 +4,15 @@ import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { Send, Heart, MessageCircle, RefreshCw } from "lucide-react"
+import { Send, Heart, MessageCircle, RefreshCw, Image as ImageIcon, X } from "lucide-react"
 import { addMessage, getMessages, type Message } from "@/lib/firestore"
 
 export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [newMessage, setNewMessage] = useState({ name: '', message: '' })
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,6 +50,41 @@ export default function MessagesPage() {
     }
   }
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file')
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB')
+        return
+      }
+      
+      setSelectedImage(file)
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+      setError(null)
+    }
+  }
+
+  const removeImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+    // Clear the file input
+    const fileInput = document.getElementById('image') as HTMLInputElement
+    if (fileInput) fileInput.value = ''
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newMessage.name.trim() && newMessage.message.trim()) {
@@ -55,12 +92,13 @@ export default function MessagesPage() {
       setError(null)
       
       try {
-        await addMessage(newMessage.name, newMessage.message)
+        await addMessage(newMessage.name, newMessage.message, selectedImage || undefined)
         setNewMessage({ name: '', message: '' })
+        removeImage()
         // Reload messages to show the new one
         await loadMessages()
-      } catch (err) {
-        setError('Failed to send message. Please try again.')
+      } catch (err: any) {
+        setError(err.message || 'Failed to send message. Please try again.')
         console.error('Error adding message:', err)
       } finally {
         setIsSubmitting(false)
@@ -160,6 +198,62 @@ export default function MessagesPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Image Upload Section */}
+              <div>
+                <label htmlFor="image" className="block text-white/80 text-sm font-medium mb-2">
+                  Add an Image (Optional)
+                </label>
+                <div className="space-y-4">
+                  {!imagePreview ? (
+                    <div className="relative">
+                      <input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="image"
+                        className="flex items-center justify-center w-full p-4 bg-gray-900/50 border-2 border-dashed border-gray-600/50 rounded-lg cursor-pointer hover:bg-gray-900/70 hover:border-gray-500/50 transition-all"
+                      >
+                        <div className="text-center">
+                          <ImageIcon className="mx-auto h-8 w-8 text-white/50 mb-2" />
+                          <p className="text-white/60 text-sm">
+                            Click to upload an image
+                          </p>
+                          <p className="text-white/40 text-xs mt-1">
+                            Max 5MB • JPG, PNG, GIF
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full max-h-48 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 rounded-full transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                      <div className="mt-2 text-center">
+                        <p className="text-white/60 text-sm">{selectedImage?.name}</p>
+                        <p className="text-white/40 text-xs">
+                          {selectedImage ? (selectedImage.size / 1024 / 1024).toFixed(1) + ' MB' : ''}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex justify-center">
                 <Button
                   type="submit"
@@ -169,7 +263,7 @@ export default function MessagesPage() {
                   {isSubmitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-black/30 border-t-black mr-2"></div>
-                      Sending...
+                      {selectedImage ? 'Uploading...' : 'Sending...'}
                     </>
                   ) : (
                     <>
@@ -224,6 +318,19 @@ export default function MessagesPage() {
                     {message.name}
                   </h3>
                 </div>
+                
+                {/* Display image if present */}
+                {message.imageUrl && (
+                  <div className="mb-4">
+                    <img
+                      src={message.imageUrl}
+                      alt="Shared image"
+                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() => window.open(message.imageUrl, '_blank')}
+                    />
+                  </div>
+                )}
+                
                 <p className="text-white/80 text-sm leading-relaxed mb-4 group-hover:text-white/90 transition-colors">
                   "{message.message}"
                 </p>
